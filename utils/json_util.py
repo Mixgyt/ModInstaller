@@ -21,13 +21,19 @@ def ConfigReader(config:str):
             arch = json.load(file)
             data = arch[config]
     except(KeyError, FileExistsError, FileNotFoundError):
-        print("Error de lectura")
-        data = None
+            try:
+                print("Error de lectura, se ha creado un nuevo archivo de configuraciones")
+                arch = ConfigCreate()
+                data = arch[config]
+            except(KeyError):
+                data = ConfigAdd(config,"")
+                data = data[config]
+                print("Se ha creado la key faltante")
 
     return data
 
 
-def ConfigEdit(config:str,value):
+def ConfigAdd(config:str,value):
     fileName = "settings.json"
     data = {}
     try:
@@ -36,7 +42,6 @@ def ConfigEdit(config:str,value):
         data[config] = value
         with open(fileName,"w") as file:
             json.dump(data,file,indent="\t")
-
     except():
         print("Error al modificar archivo")
         return False
@@ -50,12 +55,16 @@ def ConfigCreate():
     try:
         with open(fileName,"w") as file:
             json.dump(data,file,indent="\t")
-            
+
+        with open("settings.json","r") as file:
+            arch = json.load(file)
+            data = arch
     except():
         print("Error al crear json")
-        return False
+        data = None
+        return data
     
-    return True
+    return data
 
 def jsonRemove(fileName:str):
     fileName = fileName.strip()
