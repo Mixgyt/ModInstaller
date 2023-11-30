@@ -1,2 +1,6 @@
 #Ignorar entorno virtual de python
 venv
+__pycache__
+dist
+build
+*.spec
