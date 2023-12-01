@@ -1,6 +1,8 @@
 #Ignorar entorno virtual de python
 venv
 __pycache__
+
+##Ignorar compilaciones 
 dist
 build
 *.spec

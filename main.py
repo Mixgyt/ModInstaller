@@ -1,6 +1,5 @@
 import os
 import flet as ft
-import requests
 
 import utils.json_util as jsu
 import utils.installMods as installer
@@ -15,7 +14,7 @@ def verifyDir():
     return True
 
 def main(page: ft.Page):
-    page.title = "ChambaLand Mods Installer "+version
+    page.title = "ChambaLand Mods Installer "+version+" by Mixgyt"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
     page.window_height = 600
@@ -29,6 +28,10 @@ def main(page: ft.Page):
             page.update()
 
     def ModsInstaller(e):
+        selectFolder.disabled = True
+        usaTLauncher.disabled = True
+        path_text.disabled = True
+        InstalarBt.disabled = True
         ContenerdorDeCarga.visible = True
         page.update()
         result = installer.InstallMods(path_text.value.strip(),eliminarModsOld.value)
@@ -43,6 +46,12 @@ def main(page: ft.Page):
             barraDeDescarga.color = "red"
             errorAlert.open = True
             page.update()
+
+        selectFolder.disabled = False
+        usaTLauncher.disabled = False
+        path_text.disabled = False
+        InstalarBt.disabled = False
+        page.update()
 
     def TLauncherUse(e):
         if(usaTLauncher.value):
