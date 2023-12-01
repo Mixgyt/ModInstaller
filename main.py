@@ -1,10 +1,12 @@
 import os
 import flet as ft
+import requests
 
 import utils.json_util as jsu
 import utils.installMods as installer
+import utils.updater as updater
 
-version = "v2.0"
+version = "v2.1"
 
 def verifyDir():
     data = jsu.ConfigReader("mcdir")
@@ -65,6 +67,12 @@ def main(page: ft.Page):
         exitoAlert.open = False
         page.update()
 
+        
+    def RemoverVersion(e):
+        page.window_close()
+        os.remove("ModInstaller"+version+".exe")
+        print("Eliminado")
+
     errorAlert = ft.AlertDialog(
         modal=True,
         title=ft.Text("Error"),
@@ -82,6 +90,16 @@ def main(page: ft.Page):
         content=ft.Text("Los mods han sido instalados correctamente"),
         actions=[
             ft.ElevatedButton(text="Aceptar",color="green",on_click=ExitoProceso)
+        ],
+        actions_alignment=ft.MainAxisAlignment.END
+    )
+
+    updateAler = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("El instalador se ha actualizado"),
+        content=ft.Text("El instalador se ha actualizado por favor cierra esta version"),
+        actions=[
+            ft.ElevatedButton(text="Cerrar App",color="red",on_click=RemoverVersion)
         ],
         actions_alignment=ft.MainAxisAlignment.END
     )
@@ -178,5 +196,12 @@ def main(page: ft.Page):
         usaTLauncher.value = False
 
     page.add(TituloText,contenedorMed,InstalarBt,ContenerdorDeCarga)
+    jsu.ConfigAdd("version",version)
+
+    if(updater.CheckVersion(version)):
+        page.dialog = updateAler
+        updateAler.open = True
+        page.update()
+
 
 ft.app(target=main)
