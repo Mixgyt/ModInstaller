@@ -5,7 +5,7 @@ import utils.json_util as jsu
 import utils.installMods as installer
 import utils.updater as updater
 
-version = "v2.1"
+version = "v2.2"
 
 def verifyDir():
     data = jsu.ConfigReader("mcdir")
@@ -79,8 +79,9 @@ def main(page: ft.Page):
         
     def RemoverVersion(e):
         page.window_close()
-        os.remove("ModInstaller"+version+".exe")
-        print("Eliminado")
+        os.system("updater.exe")
+        ##os.remove("ModInstaller"+version+".exe")
+        ##print("Eliminado")
 
     errorAlert = ft.AlertDialog(
         modal=True,
