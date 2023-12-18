@@ -6,3 +6,6 @@ __pycache__
 dist
 build
 *.spec
+
+##Ignorar configuraciones del desarrollador
+settings.json
