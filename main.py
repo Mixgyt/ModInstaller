@@ -1,11 +1,14 @@
 import os
 import flet as ft
+import base64
+import webbrowser
 
 import utils.json_util as jsu
 import utils.installMods as installer
 import utils.updater as updater
+import utils.server_status as status
 
-version = "v2.2"
+version = "v2.3"
 
 def verifyDir():
     data = jsu.ConfigReader("mcdir")
@@ -20,6 +23,12 @@ def main(page: ft.Page):
     page.window_height = 600
     page.window_width = 800
     path_text = ft.TextField(value=jsu.ConfigReader("mcdir"),width=500,tooltip="Aqui se muestra la direccion donde se instalan los mods en para ChambaLand")
+
+    def SaveBytes(bytes:str):
+        format = bytes[bytes.find(",")+1:].encode()
+        with open("icon.png","wb") as file:
+            file.write(base64.decodebytes(format))
+        return "icon.png"
 
     def PickFolder(e: ft.FilePickerResultEvent):
         if(e.path != None):
@@ -77,11 +86,20 @@ def main(page: ft.Page):
         page.update()
 
         
-    def RemoverVersion(e):
-        page.window_close()
-        os.system("updater.exe")
-        ##os.remove("ModInstaller"+version+".exe")
-        ##print("Eliminado")
+    def RedirVersion(e):
+        updateAler.open = False
+        page.update()
+        webbrowser.open("https://github.com/Mixgyt/ModInstaller/releases/download/"+updater.GetVersion()+"/ModInstaller.exe",0,autoraise=True)
+    
+    def CancelUpdate(e):
+        updateAler.open = False
+        page.update()
+
+    def NameList(lista:dict):
+        rlista:str = "Jugadores:"
+        for l in lista:
+            rlista += "\n"+l["name"]
+        return rlista
 
     errorAlert = ft.AlertDialog(
         modal=True,
@@ -107,9 +125,10 @@ def main(page: ft.Page):
     updateAler = ft.AlertDialog(
         modal=True,
         title=ft.Text("El instalador se ha actualizado"),
-        content=ft.Text("El instalador se ha actualizado por favor cierra esta version"),
+        content=ft.Text("El instalador se ha actualizado ¿deseas atualizarlo?"),
         actions=[
-            ft.ElevatedButton(text="Cerrar App",color="red",on_click=RemoverVersion)
+            ft.ElevatedButton(text="Descargar Actualizacion",color="green",on_click=RedirVersion),
+            ft.ElevatedButton(text="Cancelar",color="red",on_click=CancelUpdate)
         ],
         actions_alignment=ft.MainAxisAlignment.END
     )
@@ -117,13 +136,58 @@ def main(page: ft.Page):
     folderPiker = ft.FilePicker(on_result=PickFolder)
     page.overlay.append(folderPiker)
 
-    contenedorSup = ft.Column(
-        alignment=ft.alignment.center,
-        controls=[
-            ft.Text("Servidor"),
-            ft.Text("motd",text_align=ft.TextAlign.CENTER)
-        ]
-    )
+    Sname = status.ServerName()
+    SInfo = status.ServerInfo()
+    if SInfo["online"]:
+        Ico = SaveBytes(SInfo["icon"])
+        contenedorSup = ft.Container(
+            bgcolor=ft.colors.GREEN_800,
+            width=400,
+            height=110,
+            border_radius=10,
+            margin=10,
+            padding=20,
+            tooltip=Sname+" Online "+str(SInfo["ip"])+":"+str(SInfo["port"]),
+            content=ft.Row(
+                alignment=ft.MainAxisAlignment.CENTER,
+                controls=[
+                    ft.Image(src=Ico),
+                    ft.Column(
+                        controls=[
+                            ft.Text(Sname,weight="bold",size=25,color=ft.colors.GREEN_100),
+                            ft.Text("::"+SInfo["motd"]["clean"][0]+"::",size=15,color="yellow")
+                    ]),
+                    ft.VerticalDivider(width=50),
+                    ft.Column(
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        controls=[ft.Text("Online",color=ft.colors.GREEN_100,text_align=ft.alignment.center,tooltip="Jugadores activos: "+str(SInfo["players"]["online"]),),
+                                  ft.Text(str(SInfo["players"]["online"])+"/"+str(SInfo["players"]["max"]),color=ft.colors.GREEN_100,text_align=ft.alignment.center,tooltip=NameList(SInfo["players"]["list"]))]
+                    )
+                ]
+            )
+        )
+    else:
+        contenedorSup = ft.Container(
+            bgcolor=ft.colors.RED_800,
+            width=400,
+            height=120,
+            border_radius=10,
+            margin=10,
+            padding=20,
+            tooltip=Sname+" Offline "+str(SInfo["ip"])+":"+str(SInfo["port"]),
+            content=ft.Row(
+                controls=[
+                    ft.Icon(ft.icons.ERROR_ROUNDED),
+                    ft.Column(
+                    controls=[
+                        ft.Text(Sname,weight="bold",size=25,color=ft.colors.RED_100),
+                        ft.Text("::"+"SERVIDOR OFFLINE"+"::",size=15,color="yellow")
+                    ]),
+                    ft.VerticalDivider(width=50),
+                    ft.Text("Offline",color=ft.colors.RED_100)
+                ]
+            )
+        )
 
     eliminarModsOld = ft.Checkbox(
         label="Eliminar mods viejos",
@@ -205,13 +269,16 @@ def main(page: ft.Page):
     if(jsu.ConfigReader("mcdir") != jsu.ConfigReader("userPath")+"\\AppData\\Roaming\\.minecraft\\mods"):
         usaTLauncher.value = False
 
-    page.add(TituloText,contenedorMed,InstalarBt,ContenerdorDeCarga)
-    jsu.ConfigAdd("version",version)
+    page.add(TituloText,contenedorSup,contenedorMed,InstalarBt,ContenerdorDeCarga)
 
     if(updater.CheckVersion(version)):
         page.dialog = updateAler
         updateAler.open = True
         page.update()
 
-
 ft.app(target=main)
+try:
+    os.remove("icon.png")
+except:
+    print("el icono no fue creado previamente")
+    quit()
