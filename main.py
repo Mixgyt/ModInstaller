@@ -1,6 +1,6 @@
-import os
 import flet as ft
-import base64
+import shutil,os
+import base64,time
 import webbrowser
 
 import utils.json_util as jsu
@@ -17,11 +17,13 @@ def verifyDir():
     return True
 
 def main(page: ft.Page):
+    page.theme_mode = ft.ThemeMode.DARK
     page.title = "ChambaLand Mods Installer "+version+" by Mixgyt"
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
-    page.window_height = 600
+    page.window_height = 700
     page.window_width = 800
+    user_name = ft.TextField(value="",tooltip="Coloca tu el nombre que utilizas al jugar minecraft")
     path_text = ft.TextField(value=jsu.ConfigReader("mcdir"),width=500,tooltip="Aqui se muestra la direccion donde se instalan los mods en para ChambaLand")
 
     def SaveBytes(bytes:str):
@@ -35,6 +37,31 @@ def main(page: ft.Page):
             jsu.ConfigAdd("mcdir",e.path.strip())
             path_text.value = jsu.ConfigReader("mcdir")
             page.update()
+
+    def SelectSkin(e: ft.FilePickerResultEvent):
+        e.data = e.data.replace("null","None")
+        data = eval(e.data)
+        if(data["files"] != None):
+            page.dialog = typeUserName
+            typeUserName.open = True
+            jsu.ConfigAdd("skinPath",data["files"][0]["path"])
+            page.update()
+    
+    def SaveSkin(e):
+        skpath = str(jsu.ConfigReader("mcdir")).replace("mods","cachedImages\\skins\\")
+        typeUserName.open = False
+        page.update()
+        if(user_name.value != None and os.path.exists(skpath)):
+            shutil.copy(jsu.ConfigReader("skinPath"),skpath+user_name.value+".png")
+        else:
+            time.sleep(0.2)
+            page.dialog = errorAlert
+            errorAlert.open = True
+            page.update()     
+    
+    def CancelSkin(e):
+        typeUserName.open = False
+        page.update()
 
     def ModsInstaller(e):
         selectFolder.disabled = True
@@ -96,20 +123,39 @@ def main(page: ft.Page):
         page.update()
 
     def NameList(lista:dict):
+        try:
+            lista = lista["list"]
+        except KeyError:
+            return "Nadie"
         rlista:str = "Jugadores:"
         for l in lista:
             rlista += "\n"+l["name"]
         return rlista
 
+    typeUserName = ft.AlertDialog(
+        modal=True,
+        title=ft.Text("Escribe tu nombre de usuario para tu skin"),
+        content=ft.Column(
+            height=100,
+            width=100,
+            controls=[ft.Text("Tal cual con con sus respectivas mayusculas, minusculas y simbolos",size=14,italic=True,text_align=ft.TextAlign.CENTER),
+                    user_name]
+        ),
+        actions=[
+            ft.ElevatedButton(text="Aceptar",color="green",on_click=SaveSkin,tooltip="Guardar la skin para nombre de usuario"),
+            ft.ElevatedButton(text="Cancelar",color="red",on_click=CancelSkin,tooltip="Cancelar guardado")
+        ],
+        actions_alignment=ft.MainAxisAlignment.CENTER
+    )   
+
     errorAlert = ft.AlertDialog(
         modal=True,
-        title=ft.Text("Error"),
+        title=ft.Text("Error de directorio"),
         content=ft.Text("El directorio de instalacion no se ha encontrado"),
         actions=[
             ft.ElevatedButton(text="Aceptar",color="red",on_click=ErrorProceso)
         ],
-        actions_alignment=ft.MainAxisAlignment.END,
-        on_dismiss=lambda e: print("cerrado")
+        actions_alignment=ft.MainAxisAlignment.END
     )
 
     exitoAlert = ft.AlertDialog(
@@ -134,6 +180,8 @@ def main(page: ft.Page):
     )
 
     folderPiker = ft.FilePicker(on_result=PickFolder)
+    filePiker = ft.FilePicker(on_result=SelectSkin)
+    page.overlay.append(filePiker)
     page.overlay.append(folderPiker)
 
     Sname = status.ServerName()
@@ -161,7 +209,7 @@ def main(page: ft.Page):
                     ft.Column(
                         alignment=ft.MainAxisAlignment.CENTER,
                         controls=[ft.Text("Online",color=ft.colors.GREEN_100,text_align=ft.alignment.center,tooltip="Jugadores activos: "+str(SInfo["players"]["online"]),),
-                                  ft.Text(str(SInfo["players"]["online"])+"/"+str(SInfo["players"]["max"]),color=ft.colors.GREEN_100,text_align=ft.alignment.center,tooltip=NameList(SInfo["players"]["list"]))]
+                                  ft.Text(str(SInfo["players"]["online"])+"/"+str(SInfo["players"]["max"]),color=ft.colors.GREEN_100,text_align=ft.alignment.center,tooltip=NameList(SInfo["players"]))]
                     )
                 ]
             )
@@ -214,20 +262,26 @@ def main(page: ft.Page):
         on_click=lambda _: folderPiker.get_directory_path("Directorio de Minecraft",jsu.ConfigReader("userPath"))
     )
 
+    changeSkin = ft.IconButton(
+        ft.icons.PERSON_2_SHARP,
+        tooltip="Cambia tu skin",
+        on_click=lambda _: filePiker.pick_files("Selecciona tu Skin",jsu.ConfigReader("userPath"),ft.FilePickerFileType.IMAGE,["png"])
+    )
+
     contenedorMed = ft.Container(
         alignment=ft.alignment.center,
         border_radius=10,
         margin=10,
         padding=20,
         bgcolor=ft.colors.BLUE_900,
-        width=600,
+        width=635,
         height=200,
         content = ft.Column(
             controls=[
                 ft.Text("Opciones extra:",weight=ft.FontWeight.BOLD),
                 ft.Row(controls=[eliminarModsOld, usaTLauncher]),
                 ft.Text("Carpeta de instalacion:"),
-                ft.Row(controls=[path_text,selectFolder])],
+                ft.Row(controls=[path_text,selectFolder,changeSkin])],
             alignment="center"
         )
     )
@@ -279,6 +333,6 @@ def main(page: ft.Page):
 ft.app(target=main)
 try:
     os.remove("icon.png")
-except:
+except FileNotFoundError:
     print("el icono no fue creado previamente")
     quit()
