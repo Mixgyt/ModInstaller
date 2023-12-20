@@ -8,7 +8,7 @@ import utils.installMods as installer
 import utils.updater as updater
 import utils.server_status as status
 
-version = "v2.3"
+version = "v2.4"
 
 def verifyDir():
     data = jsu.ConfigReader("mcdir")
